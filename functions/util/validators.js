@@ -68,13 +68,14 @@ exports.hasProperties = (obj, props) => {
 exports.validateSignupData = data => {
   let errors = {};
   if (isEmpty(data.email)) {
-    errors.email = 'Must not be empty.';
+    errors.email = 'Please enter your email.';
   } else if (!isEmail(data.email)) {
-    errors.email = 'Must be a valid email address.';
+    errors.email = 'Please enter a valid email address in format: yourname@example.com';
   }
-  if (isEmpty(data.password)) errors.password = 'Must not be empty.';
-  if (data.password !== data.confirmPassword) errors.confirmPassword = 'Passwords must match';
-  if (isEmpty(data.username)) errors.username = 'Must not be empty.';
+  if (isEmpty(data.password)) errors.password = 'Please enter your password.';
+  if (data.password !== data.confirmPassword)
+    errors.confirmPassword = 'Please make sure that passwords match.';
+  if (isEmpty(data.username)) errors.username = 'Please enter your username.';
   return {
     errors,
     valid: Object.keys(errors).length === 0 ? true : false
@@ -83,8 +84,8 @@ exports.validateSignupData = data => {
 
 exports.validateLoginData = data => {
   let errors = {};
-  if (isEmpty(data.email)) errors.email = 'Must not be empty.';
-  if (isEmpty(data.password)) errors.password = 'Must not be empty.';
+  if (isEmpty(data.email)) errors.email = 'Please enter your email.';
+  if (isEmpty(data.password)) errors.password = 'Please enter your password.';
   return {
     errors,
     valid: Object.keys(errors).length === 0 ? true : false
@@ -93,8 +94,8 @@ exports.validateLoginData = data => {
 
 exports.validateStrategyData = data => {
   let errors = {};
-  if (isEmpty(data.name)) errors.name = 'Must not be empty.';
-  if (isEmpty(data.type)) errors.type = 'Must not be empty.';
+  if (isEmpty(data.name)) errors.name = 'Please enter strategy name.';
+  if (isEmpty(data.type)) errors.type = 'Please enter strategy type.';
   return {
     errors,
     valid: Object.keys(errors).length === 0 ? true : false

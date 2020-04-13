@@ -71,9 +71,8 @@ exports.createStrategy = (req, res) => {
 
   // Init strategy object
   const newStrategy = {
+    ...req.body,
     userId: req.user.username,
-    name: req.body.name,
-    type: req.body.type,
     createdAt: new Date().toISOString()
   };
 

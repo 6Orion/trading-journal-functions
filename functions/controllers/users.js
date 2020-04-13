@@ -3,7 +3,12 @@ const config = require('../util/FirebaseConfig');
 const firebase = require('firebase');
 
 // Validators
-const { validateSignupData, validateLoginData, reduceUserDetails } = require('../util/validators');
+const {
+  hasProperties,
+  validateSignupData,
+  validateLoginData,
+  reduceUserDetails
+} = require('../util/validators');
 
 // Initialization
 firebase.initializeApp(config);
@@ -15,6 +20,12 @@ Controllers
 // "Create" controller
 
 exports.signup = (req, res) => {
+  // 1st validation: request data (required fields must not be undefined)
+  const requiredFields = ['password', 'confirmPassword', 'email', 'username'];
+
+  const { validReq, reqErrors } = hasProperties(req.body, requiredFields);
+  if (!validReq) return res.status(400).json(reqErrors);
+
   const newUser = {
     email: req.body.email,
     password: req.body.password,
@@ -37,8 +48,7 @@ exports.signup = (req, res) => {
     .then(doc => {
       if (doc.exists) {
         throw {
-          name: 'This handle is taken',
-          message: 'Error: This handle is taken.'
+          username: 'This username is already in use. Please choose another one.'
         };
       } else {
         return firebase.auth().createUserWithEmailAndPassword(newUser.email, newUser.password);
@@ -67,10 +77,11 @@ exports.signup = (req, res) => {
       console.error(err);
       if (err.code === 'auth/email-already-in-use') {
         return res.status(400).json({
-          email: 'The email address is already in use by another account.'
+          email:
+            'This email address has an existing account associated with it. Please use another one.'
         });
       } else {
-        return res.status(500).json({ error: err, message: 'Something went wrong.' });
+        return res.status(500).json(err);
       }
     });
 };
@@ -78,6 +89,12 @@ exports.signup = (req, res) => {
 // Login controller
 
 exports.login = (req, res) => {
+  // 1st validation: request data (required fields must not be undefined)
+  const requiredFields = ['password', 'email'];
+
+  const { validReq, reqErrors } = hasProperties(req.body, requiredFields);
+  if (!validReq) return res.status(400).json(reqErrors);
+
   const user = {
     email: req.body.email,
     password: req.body.password
