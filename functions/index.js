@@ -15,6 +15,7 @@ const {
 } = require('./controllers/users');
 
 const { getStrategy, getAllStrategies, createStrategy } = require('./controllers/strategies');
+const { createTrade } = require('./controllers/trades');
 
 /*
 User routes
@@ -33,6 +34,11 @@ Strategy routes
 app.get('/strategy/:strategyId', FirebaseAuth, getStrategy);
 app.get('/strategy', FirebaseAuth, getAllStrategies);
 app.post('/strategy', FirebaseAuth, createStrategy);
+
+/*
+Trade routes
+*/
+app.post('/strategy/:strategyId/trade', FirebaseAuth, createTrade);
 
 /*
 Export API

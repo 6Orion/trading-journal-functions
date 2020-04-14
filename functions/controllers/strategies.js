@@ -47,7 +47,7 @@ exports.getAllStrategies = (req, res) => {
             strategyId: doc.id // Add document ID as well
           });
         });
-        return res.status(200).json(events);
+        return res.status(200).json(strategies);
       } else {
         return res.status(200).json({ message: 'No strategies found.' });
       }
@@ -72,6 +72,8 @@ exports.createStrategy = (req, res) => {
   // Init strategy object
   const newStrategy = {
     ...req.body,
+    trades: {},
+    tradeCount: 0,
     userId: req.user.username,
     createdAt: new Date().toISOString()
   };
@@ -83,7 +85,6 @@ exports.createStrategy = (req, res) => {
   // Query
   db.collection('strategies')
     .add(newStrategy)
-    // Validate if event exists in DB
     .then(doc => {
       newStrategy.strategyId = doc.id;
       return db

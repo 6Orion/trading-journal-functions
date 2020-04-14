@@ -102,6 +102,15 @@ exports.validateStrategyData = data => {
   };
 };
 
+exports.validateTradeData = data => {
+  let errors = {};
+  if (isEmpty(data.ticker)) errors.ticker = 'Please enter trade ticker.';
+  return {
+    errors,
+    valid: Object.keys(errors).length === 0 ? true : false
+  };
+};
+
 /*
 Reducers
 */
