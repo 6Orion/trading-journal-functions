@@ -14,8 +14,19 @@ const {
   getAuthenticatedUser
 } = require('./controllers/users');
 
-const { getStrategy, getAllStrategies, createStrategy } = require('./controllers/strategies');
-const { createTrade } = require('./controllers/trades');
+const {
+  getUserPortfolio,
+  getAllPortfolios,
+  createPortfolio,
+  updatePortfolio,
+  deletePortfolio
+} = require('./controllers/portfolios');
+const {
+  createTrade,
+  getUserTrade,
+  getUserTradesByPortfolioId,
+  deleteTrade
+} = require('./controllers/trades');
 
 /*
 User routes
@@ -28,17 +39,22 @@ app.post('/user', FirebaseAuth, addUserDetails);
 app.get('/user', FirebaseAuth, getAuthenticatedUser);
 
 /*
-Strategy routes
+Portfolio routes
 */
 
-app.get('/strategy/:strategyId', FirebaseAuth, getStrategy);
-app.get('/strategy', FirebaseAuth, getAllStrategies);
-app.post('/strategy', FirebaseAuth, createStrategy);
+app.get('/portfolio/:portfolioId', FirebaseAuth, getUserPortfolio);
+app.post('/portfolio/:portfolioId', FirebaseAuth, updatePortfolio);
+app.get('/portfolio', FirebaseAuth, getAllPortfolios);
+app.post('/portfolio', FirebaseAuth, createPortfolio);
+app.delete('/portfolio/:portfolioId', FirebaseAuth, deletePortfolio);
 
 /*
 Trade routes
 */
-app.post('/strategy/:strategyId/trade', FirebaseAuth, createTrade);
+app.post('/portfolio/:portfolioId/trade', FirebaseAuth, createTrade);
+app.get('/portfolio/:portfolioId/trade', FirebaseAuth, getUserTradesByPortfolioId);
+app.get('/portfolio/:portfolioId/trade/:tradeId', FirebaseAuth, getUserTrade);
+app.delete('/portfolio/:portfolioId/trade/:tradeId', FirebaseAuth, deleteTrade);
 
 /*
 Export API

@@ -1,47 +1,42 @@
 const { db } = require('../util/admin');
+const firestore = require('firebase').firestore;
 
 // Validators
-
 const { hasProperties, validateTradeData } = require('../util/validators');
 
+/* 
+Controllers
+*/
+
 exports.createTrade = (req, res) => {
-  // 1st validation: request data (required fields must not be undefined)
-  const requiredFields = ['ticker'];
-
-  const { validReq, reqErrors } = hasProperties(req.body, requiredFields);
-  if (!validReq) return res.status(400).json(reqErrors);
-
-  // Init strategy object
-  const newTrade = {
-    ...req.body,
-    userId: req.user.username,
-    strategyId: req.params.strategyId,
-    createdAt: new Date().toISOString()
-  };
-
-  // 2nd validation: user input
-  const { valid, errors } = validateStrategyData(newStrategy);
+  const { valid, errors } = validateTradeData(req.body);
   if (!valid) return res.status(400).json(errors);
 
-  // TODO perfrom strategy calculations
-  // update tradeCount, winRate, etc.
-  let strategy;
+  const newTrade = {
+    ...req.body,
+    createdAt: new Date()
+  };
 
-  // TODO refactor everything to containt doc() call prije nego se seta novi data, pa se moze iskorisitit doc.id i postaviti odmah u dokument
+  // TODO perform strategy calculations
+  // update tradeCount, winRate, etc.
   // TODO use batch writes for several document updates
-  // TODO use sub-collection for trades
   // TODO use sharded counters
+
+  const portfolioRef = db
+    .collection('users')
+    .doc(req.user.username)
+    .collection('portfolios')
+    .doc(req.params.portfolioId);
+
   // Query
-  db.doc(`/strategies/${newTrade.strategyId}`)
+  portfolioRef
     .get()
     .then(doc => {
       if (doc.exists) {
-        strategy = doc.data();
-
-        return db.collection('trades').add(newTrade);
+        return portfolioRef.collection('trades').add(newTrade);
       } else {
         throw {
-          strategy: "Strategy with this ID doesn't exist. Plese check your strategies list."
+          portfolio: "Portfolio with this ID doesn't exist. Plese check your portfolio list."
         };
       }
     })
@@ -49,16 +44,7 @@ exports.createTrade = (req, res) => {
       newTrade.tradeId = doc.id;
       // TODO update strategy details
       // TODO popisati strategy fieldove na bazi drugih trade journala i onog sto bih zelio imati
-      const newTradeDetails = {
-        tradeId: doc.id,
-        ticker: newTrade.ticker,
-        createdAt: newTrade.createdAt
-      };
-      return db
-        .doc(`/strategies/${newTrade.strategyId}`)
-        .update({ [`trades.${doc.id}`]: newTradeDetails });
-    })
-    .then(() => {
+
       return res.status(201).json(newTrade);
     })
     .catch(err => {
@@ -67,10 +53,16 @@ exports.createTrade = (req, res) => {
     });
 };
 
-exports.getTrade = (req, res) => {
+// Get one trade based on tradeId
+exports.getUserTrade = (req, res) => {
   let tradeData = {};
 
-  db.doc(`/trades/${req.params.tradeId}`)
+  db.collection('users')
+    .doc(req.user.username)
+    .collection('portfolios')
+    .doc(req.params.portfolioId)
+    .collection('trades')
+    .doc(req.params.tradeId)
     .get()
     .then(doc => {
       if (!doc.exists) {
@@ -80,6 +72,7 @@ exports.getTrade = (req, res) => {
       }
       tradeData = doc.data(); // Unpack document snapshot data into an object
       tradeData.tradeId = doc.id; // Add the document snapshot ID to the object (otherwise unreachable)
+      tradeData.createdAt = tradeData.createdAt.toDate();
       return res.status(200).json(tradeData);
     })
     .catch(err => {
@@ -88,12 +81,27 @@ exports.getTrade = (req, res) => {
     });
 };
 
-exports.getAllTradesByStrategyId = (req, res) => {
+// Get all user's trades based on portfolioId
+exports.getUserTradesByPortfolioId = (req, res) => {
   let trades = [];
 
-  db.collection('trades')
-    .where('strategyId', '==', req.params.strategyId)
+  let portfolioRef = db
+    .collection('users')
+    .doc(req.user.username)
+    .collection('portfolios')
+    .doc(req.params.portfolioId);
+
+  portfolioRef
     .get()
+    .then(doc => {
+      if (!doc.exists) {
+        throw {
+          message: "Portfolio with this ID doesn't exist. Plese check your portfolio list again."
+        };
+      } else {
+        return portfolioRef.collection('trades').get();
+      }
+    })
     .then(data => {
       if (data) {
         data.forEach(doc => {
@@ -104,7 +112,9 @@ exports.getAllTradesByStrategyId = (req, res) => {
         });
         return res.status(200).json(trades);
       } else {
-        return res.status(200).json({ message: 'No trades found for this strategy.' });
+        return res
+          .status(200)
+          .json({ message: 'No trades found in this portfolio. Please add some!' });
       }
     })
     .catch(err => {
@@ -116,73 +126,38 @@ exports.getAllTradesByStrategyId = (req, res) => {
     });
 };
 
-exports.getAllTradesByStrategyId = (req, res) => {
-  let trades = [];
-
-  db.collection('trades')
-    .where('strategyId', '==', req.params.strategyId)
-    .get()
-    .then(data => {
-      if (data) {
-        data.forEach(doc => {
-          trades.push({
-            ...doc.data(), // Unpack all document snapshot data
-            tradeId: doc.id // Add document ID as well
-          });
-        });
-        return res.status(200).json(trades);
-      } else {
-        return res.status(200).json({ message: 'No trades found for this strategy.' });
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      return res.status(500).json({
-        error: err,
-        message: 'Something went wrong while fetching data.'
-      });
-    });
-};
-
+// Delete a trade based on strategyId and tradeId parameteres
 exports.deleteTrade = (req, res) => {
-  const document = db.doc(`/trades/${req.params.tradeId}`);
+  const tradeRef = db
+    .collection('users')
+    .doc(req.user.username)
+    .collection('portfolios')
+    .doc(req.params.portfolioId)
+    .collection('trades')
+    .doc(req.params.tradeId);
+
   let tradeData;
-  document
+
+  tradeRef
     .get()
     .then(doc => {
       if (!doc.exists) {
         throw new Error('Not found.');
       }
-      tradeData = doc.data();
-      if (tradeData.userId !== req.user.username) {
-        throw new Error('Unauthorized action.');
-      } else {
-        return document.delete();
-      }
+      return tradeRef.delete();
     })
+    // TODO update portfolio statistics and values
     .then(() => {
-      db.doc(`/strategies/${tradeData.strategyId}/trades`).update({
-        [req.params.tradeId]: firebase.firestore.FieldValue.delete()
-      });
-    })
-    .then(() => {
-      res.json({ message: 'Event deleted successfully.' });
+      res.json({ message: 'Trade deleted successfully.' });
     })
     .catch(err => {
       console.error(err);
       if (err.message === 'Not found.') {
         return res.status(404).json({ error: err.code, message: 'Trade not found.' });
-      } else if (err.message === 'Unauthorized action.') {
-        return res
-          .status(403)
-          .json({
-            error: err.code,
-            message: 'Unauthorized action: You are not an author of this trade.'
-          });
       } else {
         return res.status(500).json({
           error: err.code,
-          message: 'Something went wrong while deleting this event.'
+          message: 'Something went wrong while deleting this trade.'
         });
       }
     });

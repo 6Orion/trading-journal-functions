@@ -3,12 +3,7 @@ const config = require('../util/FirebaseConfig');
 const firebase = require('firebase');
 
 // Validators
-const {
-  hasProperties,
-  validateSignupData,
-  validateLoginData,
-  reduceUserDetails
-} = require('../util/validators');
+const { validateSignupData, validateLoginData, reduceUserDetails } = require('../util/validators');
 
 // Initialization
 firebase.initializeApp(config);
@@ -20,11 +15,9 @@ Controllers
 // "Create" controller
 
 exports.signup = (req, res) => {
-  // 1st validation: request data (required fields must not be undefined)
-  const requiredFields = ['password', 'confirmPassword', 'email', 'username'];
-
-  const { validReq, reqErrors } = hasProperties(req.body, requiredFields);
-  if (!validReq) return res.status(400).json(reqErrors);
+  // Validation of input
+  const { valid, errors } = validateSignupData(newUser);
+  if (!valid) return res.status(400).json(errors);
 
   const newUser = {
     email: req.body.email,
@@ -32,12 +25,8 @@ exports.signup = (req, res) => {
     confirmPassword: req.body.confirmPassword,
     username: req.body.username
   };
+
   let token, userId;
-
-  // Validation of input
-  const { valid, errors } = validateSignupData(newUser);
-  if (!valid) return res.status(400).json(errors);
-
   const noImg = 'blank-avatar-transparent.png';
 
   // Creating user document
@@ -64,7 +53,7 @@ exports.signup = (req, res) => {
       const userCredentials = {
         username: newUser.username,
         email: newUser.email,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         imageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
         userId
       };
@@ -87,22 +76,14 @@ exports.signup = (req, res) => {
 };
 
 // Login controller
-
 exports.login = (req, res) => {
-  // 1st validation: request data (required fields must not be undefined)
-  const requiredFields = ['password', 'email'];
-
-  const { validReq, reqErrors } = hasProperties(req.body, requiredFields);
-  if (!validReq) return res.status(400).json(reqErrors);
+  const { valid, errors } = validateLoginData(req.body);
+  if (!valid) return res.status(400).json(errors);
 
   const user = {
     email: req.body.email,
     password: req.body.password
   };
-
-  // Validation of input
-  const { valid, errors } = validateLoginData(user);
-  if (!valid) return res.status(400).json(errors);
 
   // Auth
   firebase
@@ -134,7 +115,6 @@ exports.login = (req, res) => {
 };
 
 // Get own user details controller
-
 exports.getAuthenticatedUser = (req, res) => {
   let userData = {};
 
@@ -148,6 +128,7 @@ exports.getAuthenticatedUser = (req, res) => {
         };
       } else {
         userData.credentials = doc.data();
+        userData.createdAt = userData.createdAt.toDate();
         return res.json(userData);
       }
     })
@@ -161,7 +142,6 @@ exports.getAuthenticatedUser = (req, res) => {
 };
 
 // Add user details controller
-
 exports.addUserDetails = (req, res) => {
   let userDetails = reduceUserDetails(req.body);
 
@@ -180,7 +160,6 @@ exports.addUserDetails = (req, res) => {
 };
 
 // Image Upload controller
-
 exports.uploadImage = (req, res) => {
   const BusBoy = require('busboy');
   const path = require('path');

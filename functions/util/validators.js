@@ -3,7 +3,7 @@ Helper functions
 */
 
 const isEmpty = string => {
-  if (string.trim() === '') return true;
+  if (string === undefined || string.trim() === '') return true;
   else return false;
 };
 
@@ -67,6 +67,7 @@ exports.hasProperties = (obj, props) => {
 
 exports.validateSignupData = data => {
   let errors = {};
+
   if (isEmpty(data.email)) {
     errors.email = 'Please enter your email.';
   } else if (!isEmail(data.email)) {
@@ -92,10 +93,10 @@ exports.validateLoginData = data => {
   };
 };
 
-exports.validateStrategyData = data => {
+exports.validatePortfolioData = data => {
   let errors = {};
-  if (isEmpty(data.name)) errors.name = 'Please enter strategy name.';
-  if (isEmpty(data.type)) errors.type = 'Please enter strategy type.';
+  if (isEmpty(data.name)) errors.name = 'Please enter portfolio name.';
+  if (isEmpty(data.type)) errors.type = 'Please enter portfolio type.';
   return {
     errors,
     valid: Object.keys(errors).length === 0 ? true : false
@@ -105,6 +106,17 @@ exports.validateStrategyData = data => {
 exports.validateTradeData = data => {
   let errors = {};
   if (isEmpty(data.ticker)) errors.ticker = 'Please enter trade ticker.';
+  return {
+    errors,
+    valid: Object.keys(errors).length === 0 ? true : false
+  };
+};
+
+exports.validateData = (data, reqFields) => {
+  let errors = {};
+  reqFields.forEach(inputField => {
+    if (isEmpty(data[inputField])) errors[inputField] = `Please enter ${inputField}.`;
+  });
   return {
     errors,
     valid: Object.keys(errors).length === 0 ? true : false

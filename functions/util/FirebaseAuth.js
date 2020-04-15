@@ -1,7 +1,6 @@
 const { admin, db } = require('./admin');
 
 module.exports = (req, res, next) => {
-  console.log('Starting FBAuth...');
   let idToken;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
     idToken = req.headers.authorization.split('Bearer ')[1];
@@ -29,5 +28,4 @@ module.exports = (req, res, next) => {
       console.error('Error while verifying token ', err);
       return res.status(403).json(err);
     });
-  console.log('Finishing FBAuth...');
 };
