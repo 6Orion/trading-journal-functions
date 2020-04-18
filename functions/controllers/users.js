@@ -16,7 +16,7 @@ Controllers
 
 exports.signup = (req, res) => {
   // Validation of input
-  const { valid, errors } = validateSignupData(newUser);
+  const { valid, errors } = validateSignupData(req.body);
   if (!valid) return res.status(400).json(errors);
 
   const newUser = {
@@ -30,12 +30,14 @@ exports.signup = (req, res) => {
   const noImg = 'blank-avatar-transparent.png';
 
   // Creating user document
-  db.doc(`/users/${newUser.username}`)
+  db.collection('users')
+    .where('username', '==', newUser.username)
+    .limit(1)
     .get()
     // Validate if user exists in DB
     // If it's not there, add an user to AUTH app of firebase
-    .then(doc => {
-      if (doc.exists) {
+    .then(querySnapshot => {
+      if (querySnapshot.size !== 0) {
         throw {
           username: 'This username is already in use. Please choose another one.'
         };
@@ -54,10 +56,9 @@ exports.signup = (req, res) => {
         username: newUser.username,
         email: newUser.email,
         createdAt: new Date(),
-        imageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
-        userId
+        imageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`
       };
-      return db.doc(`/users/${newUser.username}`).set(userCredentials);
+      return db.doc(`/users/${userId}`).set(userCredentials);
     })
     .then(() => {
       return res.status(201).json({ token });
@@ -118,13 +119,13 @@ exports.login = (req, res) => {
 exports.getAuthenticatedUser = (req, res) => {
   let userData = {};
 
-  db.doc(`/users/${req.user.username}`)
+  db.doc(`/users/${req.user.userId}`)
     .get()
     .then(doc => {
       if (!doc.exists) {
         throw {
           name: 'User not found.',
-          message: 'User with that username cannot be found.'
+          message: 'User with that ID cannot be found.'
         };
       } else {
         userData.credentials = doc.data();
@@ -145,7 +146,7 @@ exports.getAuthenticatedUser = (req, res) => {
 exports.addUserDetails = (req, res) => {
   let userDetails = reduceUserDetails(req.body);
 
-  db.doc(`/users/${req.user.username}`)
+  db.doc(`/users/${req.user.userId}`)
     .update(userDetails)
     .then(() => {
       return res.json({ message: 'Details added successfully.' });
@@ -197,7 +198,7 @@ exports.uploadImage = (req, res) => {
       })
       .then(() => {
         const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imageFileName}?alt=media`;
-        return db.doc(`/users/${req.user.username}`).update({ imageUrl });
+        return db.doc(`/users/${req.user.userId}`).update({ imageUrl });
       })
       .then(() => {
         return res.json({ message: 'Image uploaded successfully.' });

@@ -12,7 +12,7 @@ exports.getUserPortfolio = (req, res) => {
   let portfolioData = {};
 
   db.collection('users')
-    .doc(req.user.username)
+    .doc(req.user.userId)
     .collection('portfolios')
     .doc(req.params.portfolioId)
     .get()
@@ -43,7 +43,7 @@ exports.getAllPortfolios = (req, res) => {
   let portfolios = [];
 
   db.collection('users')
-    .doc(req.user.username)
+    .doc(req.user.userId)
     .collection('portfolios')
     .get()
     .then(data => {
@@ -70,21 +70,20 @@ exports.getAllPortfolios = (req, res) => {
 };
 
 exports.createPortfolio = (req, res) => {
-  const { valid, errors } = validatePortfolioData(newPortfolio);
+  const { valid, errors } = validatePortfolioData(req.body);
   if (!valid) return res.status(400).json(errors);
 
   // Init object
   const newPortfolio = {
     ...req.body,
-    trades: {},
     tradeCount: 0,
-    userId: req.user.username,
-    createdAt: new Date()
+    createdAt: new Date(),
+    updatedAt: new Date()
   };
 
   // Query
   db.collection('users')
-    .doc(req.user.username)
+    .doc(req.user.userId)
     .collection('portfolios')
     .add(newPortfolio)
     .then(docRef => {
@@ -105,7 +104,8 @@ exports.createPortfolio = (req, res) => {
 exports.updatePortfolio = (req, res) => {
   const updates = {
     // TODO perform correct unpacking of selected fields only
-    ...req.body
+    ...req.body,
+    updatedAt: new Date()
   };
 
   // Init object
@@ -117,7 +117,7 @@ exports.updatePortfolio = (req, res) => {
 
   const portfolioRef = db
     .collection('users')
-    .doc(req.user.username)
+    .doc(req.user.userId)
     .collection('portfolios')
     .doc(req.params.portfolioId);
 
@@ -129,6 +129,8 @@ exports.updatePortfolio = (req, res) => {
       if (!doc.exists) {
         throw new Error('Not found.');
       }
+
+      // Object to be returned as JSON
       updatedPortfolio = {
         ...doc.data(),
 
@@ -208,7 +210,7 @@ function deleteQueryBatch(db, query, resolve, reject) {
 exports.deletePortfolio = (req, res) => {
   const portfolioRef = db
     .collection('users')
-    .doc(req.user.username)
+    .doc(req.user.userId)
     .collection('portfolios')
     .doc(req.params.portfolioId);
 

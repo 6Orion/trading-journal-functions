@@ -14,7 +14,8 @@ exports.createTrade = (req, res) => {
 
   const newTrade = {
     ...req.body,
-    createdAt: new Date()
+    createdAt: new Date(),
+    updatedAt: new Date()
   };
 
   // TODO perform strategy calculations
@@ -24,7 +25,7 @@ exports.createTrade = (req, res) => {
 
   const portfolioRef = db
     .collection('users')
-    .doc(req.user.username)
+    .doc(req.user.userId)
     .collection('portfolios')
     .doc(req.params.portfolioId);
 
@@ -58,7 +59,7 @@ exports.getUserTrade = (req, res) => {
   let tradeData = {};
 
   db.collection('users')
-    .doc(req.user.username)
+    .doc(req.user.userId)
     .collection('portfolios')
     .doc(req.params.portfolioId)
     .collection('trades')
@@ -73,6 +74,7 @@ exports.getUserTrade = (req, res) => {
       tradeData = doc.data(); // Unpack document snapshot data into an object
       tradeData.tradeId = doc.id; // Add the document snapshot ID to the object (otherwise unreachable)
       tradeData.createdAt = tradeData.createdAt.toDate();
+      tradeData.updatedAt = tradeData.updatedAt.toDate();
       return res.status(200).json(tradeData);
     })
     .catch(err => {
@@ -87,7 +89,7 @@ exports.getUserTradesByPortfolioId = (req, res) => {
 
   let portfolioRef = db
     .collection('users')
-    .doc(req.user.username)
+    .doc(req.user.userId)
     .collection('portfolios')
     .doc(req.params.portfolioId);
 
@@ -105,9 +107,11 @@ exports.getUserTradesByPortfolioId = (req, res) => {
     .then(data => {
       if (data) {
         data.forEach(doc => {
+          console.log(JSON.stringify(doc).length);
           trades.push({
             ...doc.data(), // Unpack all document snapshot data
-            tradeId: doc.id // Add document ID as well
+            tradeId: doc.id, // Add document ID as well
+            createdAt: doc.data().createdAt.toDate()
           });
         });
         return res.status(200).json(trades);
@@ -130,7 +134,7 @@ exports.getUserTradesByPortfolioId = (req, res) => {
 exports.deleteTrade = (req, res) => {
   const tradeRef = db
     .collection('users')
-    .doc(req.user.username)
+    .doc(req.user.userId)
     .collection('portfolios')
     .doc(req.params.portfolioId)
     .collection('trades')
