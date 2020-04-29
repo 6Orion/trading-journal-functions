@@ -128,7 +128,7 @@ exports.getAuthenticatedUser = (req, res) => {
           message: 'User with that ID cannot be found.'
         };
       } else {
-        userData.credentials = doc.data();
+        userData = doc.data();
         userData.createdAt = userData.createdAt.toDate();
         return res.json(userData);
       }
