@@ -117,7 +117,7 @@ exports.login = (req, res) => {
 
 // Get own user details controller
 exports.getAuthenticatedUser = (req, res) => {
-  let userData = {};
+  let userData = { user: {}, portfolios: [] };
 
   db.doc(`/users/${req.user.userId}`)
     .get()
@@ -128,10 +128,28 @@ exports.getAuthenticatedUser = (req, res) => {
           message: 'User with that ID cannot be found.'
         };
       } else {
-        userData = doc.data();
-        userData.createdAt = userData.createdAt.toDate();
-        return res.json(userData);
+        console.log(doc.data());
+        userData.user = doc.data();
+        console.log(userData);
+        userData.user.createdAt = userData.user.createdAt.toDate();
+        return db
+          .collection('users')
+          .doc(req.user.userId)
+          .collection('portfolios')
+          .get();
       }
+    })
+    .then(query => {
+      if (query) {
+        query.forEach(doc => {
+          userData.portfolios.push({
+            ...doc.data(), // Unpack all document snapshot data
+            portfolioId: doc.id, // Add document ID as well
+            createdAt: doc.data().createdAt.toDate()
+          });
+        });
+      }
+      return res.json(userData);
     })
     .catch(err => {
       console.error(err);
